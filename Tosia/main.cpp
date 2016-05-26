@@ -42,7 +42,7 @@ void compute(vnode_t paths, State state, Node* next)
 
 	if(next == nullptr)
 	{
-		Node* mostFlowers = nullptr;
+		/*Node* mostFlowers = nullptr;
 		for (int i = state.parents.size() - 1; i > 0; i--)
 		{
 			if (state.parents.at(i-1)->right != nullptr && state.parents.at(i) != state.parents.at(i-1)->right)
@@ -50,7 +50,7 @@ void compute(vnode_t paths, State state, Node* next)
 
 			if (state.parents.at(i - 1)->left != nullptr && state.parents.at(i) != state.parents.at(i - 1)->left)
 				compute(paths, state, state.parents.at(i-1)->left);
-		}
+		}*/
 		return;
 	}
 
