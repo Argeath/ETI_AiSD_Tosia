@@ -1,127 +1,143 @@
 #include <vector>
-#include <list>
-#include <set>
-#include <iostream>
+
+#include "Tree.h"
 
 using namespace std;
 
-struct Path
-{
-	int source;
-	int target;
-	int numFlowers;
-	bool collected;
 
-	Path(int s, int t, int f) : source(s), target(t), numFlowers(f), collected(false) {}
+struct State
+{
+	int flowers;
+	int pathsToGo;
+
+
+	vnode_t parents;
+	vpath_t paths;
+
+	State() : flowers(0), pathsToGo(0) {}
+	State(int p) : flowers(0), pathsToGo(p) {}
 };
 
-typedef vector<Path*> path_t;
-typedef vector<path_t> paths_t;
+State best = State();
+int numPaths = 0;
+int maxPaths = 0;
 
-void computePaths(paths_t		 &paths, 
-				  vector<int>	 &maxFlowers,
-				  vector<int>	 &distanceFromHome)
+vnode_t tree;
+vpath_t paths;
+
+int error = 0;
+Path errorPath = Path();
+Path errorParent = Path();
+Path errorParentLeft = Path();
+Path errorParentRight = Path();
+
+void compute(vnode_t paths, State state, Node* next)
 {
-	int n = paths.size();
-
-	maxFlowers.clear();
-	maxFlowers.resize(n + 1, 0);
-	maxFlowers[1] = 0;
-
-	distanceFromHome.clear();
-	distanceFromHome.resize(n + 1, -1);
-
-	set<pair<int, int>> vertexQueue;
-	vertexQueue.insert(make_pair(maxFlowers[1], 1));
-
-	distanceFromHome[1] = 0;
-
-	while(!vertexQueue.empty())
+	if(state.pathsToGo == 0)
 	{
-		int flowers = vertexQueue.begin()->first;
-		int source = vertexQueue.begin()->second;
-		vertexQueue.erase(vertexQueue.begin());
-
-		path_t &targetPaths = paths[source];
-		for (path_t::iterator it = targetPaths.begin(); it != targetPaths.end(); ++it)
-		{
-			if ((*it)->collected) continue;
-
-			int target = ((*it)->target == source) ? (*it)->source : (*it)->target;
-
-			int flowersTarget = (*it)->numFlowers;
-			int distanceTo = flowers + flowersTarget;
-
-			(*it)->collected = true;
-			vertexQueue.erase(make_pair(maxFlowers[target], target));
-
-			maxFlowers[target] = distanceTo;
-
-			distanceFromHome[target] = distanceFromHome[source] + 1;
-			vertexQueue.insert(make_pair(maxFlowers[target], target));
-		}
+		if(state.flowers > best.flowers)
+			best = state;
+		return;
 	}
+
+	if(next == nullptr)
+	{
+		Node* mostFlowers = nullptr;
+		for (int i = state.parents.size() - 1; i > 0; i--)
+		{
+			if (state.parents.at(i-1)->right != nullptr && state.parents.at(i) != state.parents.at(i-1)->right)
+				compute(paths, state, state.parents.at(i-1)->right);
+
+			if (state.parents.at(i - 1)->left != nullptr && state.parents.at(i) != state.parents.at(i - 1)->left)
+				compute(paths, state, state.parents.at(i-1)->left);
+		}
+		return;
+	}
+
+	state.flowers += next->path->flowers;
+	state.pathsToGo--;
+	state.paths.push_back(next->path);
+	state.parents.push_back(next);
+
+	compute(paths, state, next->left);
+	compute(paths, state, next->right);
+	// TODO: Both
 }
 
-void addPath(int source, int target, int flowers, paths_t &paths)
+
+Node* putPathOnTree(Path* path, Node* parent)
 {
-	path_t &sourcePaths = paths[source];
-	path_t &targetPaths = paths[target];
+	Node* n = new Node(path);
 
-	Path* p = new Path(source, target, flowers);
+	if (parent != nullptr) {
+		if (parent->left == nullptr)
+			parent->left = n;
+		else if (parent->right == nullptr)
+			parent->right = n;
+		else {
+			error = 2;
+			errorPath = *path;
+			errorParent = *parent->path;
+			errorParentLeft = *parent->left->path;
+			errorParentRight = *parent->right->path;
+			throw new exception();
+		}
+	}
 
-	sourcePaths.push_back(p);
-	targetPaths.push_back(p);
+	tree.push_back(n);
+
+	Path::erasePathWithSource(paths, path->source);
+
+	return n;
+}
+
+void buildTree(int lookForSource = 1, Node* parent = nullptr)
+{
+	Path* foundPath = Path::findPathWithSource(paths, lookForSource);
+	if (foundPath == nullptr) {
+		return;
+	}
+
+	Node* n = putPathOnTree(foundPath, parent);
+
+	buildTree(foundPath->destination, n);
+	buildTree(foundPath->destination, n);
+}
+
+void fillTree()
+{
+	while (!paths.empty())
+	{
+		Path* path = paths.at(0);
+		path->swapSrcDest();
+		Node* parent = Node::findNodeWithDestination(tree, path->source);
+
+		Node* n = putPathOnTree(path, parent);
+
+		buildTree(path->destination, n);
+		buildTree(path->destination, n);
+	}
 }
 
 int main()
 {
-	int numPaths = 0;
-	int maxPaths = 0;
-
 	scanf("%d %d", &numPaths, &maxPaths);
 
-	vector<int> maxFlowers;
-	vector<int> distanceFromHome;
-	paths_t paths;
+	int tmpSource, tmpDest, tmpFlowers;
 
-	int* readSource = new int[numPaths];
-	int* readTarget = new int[numPaths];
-	int* readFlowers = new int[numPaths];
-	
-	int maxVertex = 0;
+	for (int i = 0; i < numPaths; i++) {
+		scanf("%d %d %d", &tmpSource, &tmpDest, &tmpFlowers);
 
-	for (int i = 0; i < numPaths; i++)
-	{
-		scanf("%d %d %d", &readSource[i], &readTarget[i], &readFlowers[i]);
-
-		if (readSource[i] > maxVertex)
-			maxVertex = readSource[i];
-
-		if (readTarget[i] > maxVertex)
-			maxVertex = readTarget[i];
+		paths.push_back(new Path(tmpSource, tmpDest, tmpFlowers));
 	}
 
-	paths.resize(maxVertex + 1, path_t());
+	buildTree();
+	buildTree();
+	fillTree();
 
-	for (int i = 0; i < numPaths; i++)
-	{
-		addPath(readSource[i], readTarget[i], readFlowers[i], paths);
-	}
+	compute(tree, State(maxPaths), tree.at(0));
 
-	computePaths(paths, maxFlowers, distanceFromHome);
+	printf("%d", best.flowers);
 
-	int result = 0;
-	int key = 0;
-	for (vector<int>::const_iterator it = distanceFromHome.begin(); it != distanceFromHome.end(); ++it, key++) {
-		if (*it == maxPaths && maxFlowers[key] > result)
-			result = maxFlowers[key];
-	}
-
-	printf("%d", result);
-
-	delete readSource;
-	delete readTarget;
-	delete readFlowers;
 	return 0;
 }
