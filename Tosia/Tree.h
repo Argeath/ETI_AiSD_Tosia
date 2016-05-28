@@ -2,26 +2,24 @@
 
 struct Path
 {
-	int source;
-	int destination;
-	int flowers;
+	unsigned int source;
+	unsigned int destination;
+	unsigned int flowers;
 
 	Path() : source(0), destination(0), flowers(0) {}
-	Path(int s, int d, int f) : source(s), destination(d), flowers(f) {}
+	Path(unsigned int s, unsigned int d, unsigned int f) : source(s), destination(d), flowers(f) {}
 
 	void swapSrcDest()
 	{
-		int tmp = source;
+		unsigned int tmp = source;
 		source = destination;
 		destination = tmp;
 	}
 
-	static Path* findPathWithSource(Path** v, int source, int length)
-	{
+	static Path* findPathWithSource(Path** v, int source, int length) {
 		for (int i = 0; i < length; i++) {
-			Path* it = v[i];
-			if (it->source == source)
-				return it;
+			if (v[i]->source == source)
+				return v[i];
 		}
 		return nullptr;
 	}
@@ -29,8 +27,7 @@ struct Path
 	static void erasePath(Path** v, int source, int destination, int &length)
 	{
 		for (int i = 0; i < length; i++) {
-			Path* it = v[i];
-			if (it->source == source && it->destination == destination) {
+			if (v[i]->source == source && v[i]->destination == destination) {
 				v[i] = v[length - 1];
 				v[length - 1] = nullptr;
 				length--;
@@ -42,9 +39,8 @@ struct Path
 	static Path* findPathWithDestination(Path** v, int destination, int length)
 	{
 		for (int i = 0; i < length; i++) {
-			Path* it = v[i];
-			if (it->destination == destination)
-				return it;
+			if (v[i]->destination == destination)
+				return v[i];
 		}
 		return nullptr;
 	}
@@ -61,13 +57,8 @@ struct Node
 	Node() : left(nullptr), right(nullptr), path(nullptr), distancesIndex(-1) {}
 	Node(Path* p) : left(nullptr), right(nullptr), path(p), distancesIndex(-1) {}
 
-	static Node* findNodeWithDestination(Node** tree, int dest, int length)
+	~Node()
 	{
-		for (int i = 0; i < length; i++) {
-			Node* it = tree[i];
-			if (it->path->destination == dest)
-				return it;
-		}
-		return nullptr;
+		delete path;
 	}
 };
