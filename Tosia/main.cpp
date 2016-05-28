@@ -94,24 +94,6 @@ void fillTree(vpath_t paths, vnode_t tree)
 	}
 }
 
-struct ii
-{
-	string i;
-	ii* d;
-
-	ii() : i(""), d(nullptr) {}
-	ii(string s) : i(s), d(nullptr) {}
-};
-
-ii* in1 = new ii();
-ii* in2 = new ii();
-ii* in3 = new ii();
-ii* in4 = new ii();
-ii* in5 = new ii();
-ii* in6 = new ii();
-ii* in7 = new ii();
-ii* in8 = new ii();
-
 int main()
 {
 	vnode_t tree;
@@ -129,33 +111,11 @@ int main()
 			distancesTable[i][j] = -1;
 	}
 
-	ii* in = in1;
-
 	for (int i = 0; i < numPaths; i++) {
 		scanf("%d %d %d", &tmpSource, &tmpDest, &tmpFlowers);
 
-		in->d = new ii( to_string((long long)tmpSource) + " " + to_string((long long)tmpDest) + " " + to_string((long long)tmpFlowers));
-		if (i == 2)
-			in = in2;
-		else if (i == 5)
-			in = in3;
-		else if (i == 8)
-			in = in4;
-		else if (i == 11)
-			in = in5;
-		else if (i == 14)
-			in = in6;
-		else if (i == 17)
-			in = in7;
-		else if (i == 20)
-			in = in8;
-		else
-			in = in->d;
-
 		paths.push_back(new Path(tmpSource, tmpDest, tmpFlowers));
 	}
-
-	throw new exception();
 
 	buildTree(paths, tree);
 	buildTree(paths, tree);
