@@ -1,64 +1,60 @@
 #include <vector>
-#include <list>
 #include <set>
-#include <iostream>
+#include <list>
 
 using namespace std;
 
 struct Path
 {
-	int source;
 	int target;
-	int numFlowers;
-	bool collected;
+	int distance;
 
-	Path(int s, int t, int f) : source(s), target(t), numFlowers(f), collected(false) {}
+	Path(int t, int f) : target(t), distance(f) {}
 };
 
-typedef vector<Path*> path_t;
+typedef vector<Path> path_t;
 typedef vector<path_t> paths_t;
 
 void computePaths(paths_t		 &paths, 
-				  vector<int>	 &maxFlowers,
-				  vector<int>	 &distanceFromHome)
+				  vector<int>	 &minDistances,
+				  vector<int>	 &previous,
+				  int start)
 {
 	int n = paths.size();
 
-	maxFlowers.clear();
-	maxFlowers.resize(n + 1, 0);
-	maxFlowers[1] = 0;
+	minDistances.clear();
+	minDistances.resize(n, 2000000000);
+	minDistances[start] = 0;
 
-	distanceFromHome.clear();
-	distanceFromHome.resize(n + 1, -1);
+	previous.clear();
+	previous.resize(n, -1);
 
 	set<pair<int, int>> vertexQueue;
-	vertexQueue.insert(make_pair(maxFlowers[1], 1));
+	vertexQueue.insert(make_pair(minDistances[start], start));
 
-	distanceFromHome[1] = 0;
+	previous[start] = 0;
 
 	while(!vertexQueue.empty())
 	{
-		int flowers = vertexQueue.begin()->first;
+		int distance = vertexQueue.begin()->first;
 		int source = vertexQueue.begin()->second;
 		vertexQueue.erase(vertexQueue.begin());
 
 		path_t &targetPaths = paths[source];
 		for (path_t::iterator it = targetPaths.begin(); it != targetPaths.end(); ++it)
 		{
-			if ((*it)->collected) continue;
+			int target = it->target;
+			int distanceTarget = it->distance;
+			int distanceTo = distance + distanceTarget;
 
-			int target = ((*it)->target == source) ? (*it)->source : (*it)->target;
+			if (distanceTo < minDistances[target]) {
+				vertexQueue.erase(make_pair(minDistances[target], target));
 
-			int flowersTarget = (*it)->numFlowers;
-			int distanceTo = flowers + flowersTarget;
+				minDistances[target] = distanceTo;
 
-			(*it)->collected = true;
-			vertexQueue.erase(make_pair(maxFlowers[target], target));
-
-			maxFlowers[target] = distanceTo;
-
-			distanceFromHome[target] = distanceFromHome[source] + 1;
-			vertexQueue.insert(make_pair(maxFlowers[target], target));
+				previous[target] = source;
+				vertexQueue.insert(make_pair(minDistances[target], target));
+			}
 		}
 	}
 }
@@ -68,60 +64,65 @@ void addPath(int source, int target, int flowers, paths_t &paths)
 	path_t &sourcePaths = paths[source];
 	path_t &targetPaths = paths[target];
 
-	Path* p = new Path(source, target, flowers);
+	Path p(target, flowers);
 
 	sourcePaths.push_back(p);
-	targetPaths.push_back(p);
+	Path p2(source, flowers);
+	targetPaths.push_back(p2);
 }
 
 int main()
 {
+	int numCrosses = 0;
 	int numPaths = 0;
-	int maxPaths = 0;
 
-	scanf("%d %d", &numPaths, &maxPaths);
+	scanf("%d %d", &numCrosses, &numPaths);
 
-	vector<int> maxFlowers;
-	vector<int> distanceFromHome;
+	vector<int> minDistances;
+	vector<int> previous;
 	paths_t paths;
+	paths.resize(numCrosses, path_t());
 
-	int* readSource = new int[numPaths];
-	int* readTarget = new int[numPaths];
-	int* readFlowers = new int[numPaths];
-	
-	int maxVertex = 0;
 
+	int tmpSource, tmpTarget, tmpDistance;
 	for (int i = 0; i < numPaths; i++)
 	{
-		scanf("%d %d %d", &readSource[i], &readTarget[i], &readFlowers[i]);
+		scanf("%d %d %d", &tmpSource, &tmpTarget, &tmpDistance);
 
-		if (readSource[i] > maxVertex)
-			maxVertex = readSource[i];
-
-		if (readTarget[i] > maxVertex)
-			maxVertex = readTarget[i];
+		addPath(tmpSource, tmpTarget, tmpDistance, paths);
 	}
 
-	paths.resize(maxVertex + 1, path_t());
+	list<int> path;
+	for (int vertex = numCrosses - 1; vertex != -1; vertex = previous[vertex])
+		path.push_front(vertex);
 
-	for (int i = 0; i < numPaths; i++)
+
+	vector<int> kpaths;
+
+	for (int i = 1; i < path.size() - 2; i++)
 	{
-		addPath(readSource[i], readTarget[i], readFlowers[i], paths);
+		computePaths(paths, minDistances, previous, i);
+		kpaths.push_back(minDistances[0] + minDistances[numCrosses - 1]);
 	}
 
-	computePaths(paths, maxFlowers, distanceFromHome);
+	int shortest		= 99999998;
+	int secondShortest	= 99999999;
 
-	int result = 0;
-	int key = 0;
-	for (vector<int>::const_iterator it = distanceFromHome.begin(); it != distanceFromHome.end(); ++it, key++) {
-		if (*it == maxPaths && maxFlowers[key] > result)
-			result = maxFlowers[key];
+	for (vector<int>::const_iterator it = kpaths.begin(); it != kpaths.end(); ++it)
+	{
+
+		if (*it < shortest) {
+			secondShortest = shortest;
+			shortest = *it;
+		}
+		else if (*it < secondShortest && *it != shortest)
+			secondShortest = *it;
 	}
 
-	printf("%d", result);
+	if (kpaths.size() > 1)
+		printf("%d %d", shortest, secondShortest);
+	else
+		printf("#");
 
-	delete readSource;
-	delete readTarget;
-	delete readFlowers;
 	return 0;
 }
