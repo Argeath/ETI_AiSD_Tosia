@@ -16,33 +16,35 @@ struct Path
 		destination = tmp;
 	}
 
-	static Path* findPathWithSource(std::vector<Path*> &v, int f)
+	static Path* findPathWithSource(Path** v, int source, int length)
 	{
-		for (std::vector<Path*>::const_iterator it = v.begin(); it != v.end(); ++it)
-		{
-			if ((*it)->source == f)
-				return *it;
+		for (int i = 0; i < length; i++) {
+			Path* it = v[i];
+			if (it->source == source)
+				return it;
 		}
 		return nullptr;
 	}
 
-	static void erasePath(std::vector<Path*> &v, int source, int destination)
+	static void erasePath(Path** v, int source, int destination, int &length)
 	{
-		for (std::vector<Path*>::const_iterator it = v.begin(); it != v.end(); ++it)
-		{
-			if ((*it)->source == source && (*it)->destination == destination) {
-				v.erase(it);
+		for (int i = 0; i < length; i++) {
+			Path* it = v[i];
+			if (it->source == source && it->destination == destination) {
+				v[i] = v[length - 1];
+				v[length - 1] = nullptr;
+				length--;
 				break;
 			}
 		}
 	}
 
-	static Path* findPathWithDestination(std::vector<Path*> &v, int f)
+	static Path* findPathWithDestination(Path** v, int destination, int length)
 	{
-		for (std::vector<Path*>::const_iterator it = v.begin(); it != v.end(); ++it)
-		{
-			if ((*it)->destination == f)
-				return *it;
+		for (int i = 0; i < length; i++) {
+			Path* it = v[i];
+			if (it->destination == destination)
+				return it;
 		}
 		return nullptr;
 	}
@@ -59,16 +61,13 @@ struct Node
 	Node() : left(nullptr), right(nullptr), path(nullptr), distancesIndex(-1) {}
 	Node(Path* p) : left(nullptr), right(nullptr), path(p), distancesIndex(-1) {}
 
-	static Node* findNodeWithDestination(std::vector<Node*> tree, int dest)
+	static Node* findNodeWithDestination(Node** tree, int dest, int length)
 	{
-		for (std::vector<Node*>::const_iterator it = tree.begin(); it != tree.end(); ++it) {
-			if ((*it)->path->destination == dest)
-				return *it;
+		for (int i = 0; i < length; i++) {
+			Node* it = tree[i];
+			if (it->path->destination == dest)
+				return it;
 		}
 		return nullptr;
 	}
 };
-
-
-typedef std::vector<Path*> vpath_t;
-typedef std::vector<Node*> vnode_t;

@@ -1,20 +1,27 @@
 #include <vector>
-#include <string>
 
 #include "Tree.h"
 
 using namespace std;
 
+
 int numPaths = 0;
 int maxPaths = 0;
+
+int treeLength = 0;
+int pathsLength = 0;
 
 int compute(int** distances, Node* current, int depth)
 {
 	if (current == nullptr) 
 		return 0;
 
-	if (distances[current->distancesIndex][depth] != -1) 
+	if (distances[current->distancesIndex][depth] != -1)
 		return distances[current->distancesIndex][depth];
+
+	if (current->left == nullptr && current->right == nullptr)
+		return current->path->flowers;
+
 
 	int max = 0;
 
@@ -42,13 +49,19 @@ int compute(int** distances, Node* current, int depth)
 		}
 	}
 
-	max += current->path->flowers;
+	max += distances[current->distancesIndex][0];
 	distances[current->distancesIndex][depth] = max;
+
+	if(distances[current->distancesIndex][depth] == distances[current->distancesIndex][depth-1])
+	{
+		for (int i = depth; i < maxPaths - depth - 1; i++)
+			distances[current->distancesIndex][i] = max;
+	}
 
 	return max;
 }
 
-Node* putPathOnTree(vpath_t &paths, vnode_t &tree, Path* path, Node* parent)
+Node* putPathOnTree(Path** paths, Node** tree, Path* path, Node* parent)
 {
 	Node* n = new Node(path);
 
@@ -59,18 +72,18 @@ Node* putPathOnTree(vpath_t &paths, vnode_t &tree, Path* path, Node* parent)
 			parent->right = n;
 	}
 
-	tree.push_back(n);
+	tree[treeLength++] = n;
 
-	Path::erasePath(paths, path->source, path->destination);
+	Path::erasePath(paths, path->source, path->destination, pathsLength);
 
 	return n;
 }
 
-void buildTree(vpath_t &paths, vnode_t &tree, int lookForSource = 1, Node* parent = nullptr)
+void buildTree(Path** paths, Node** tree, int lookForSource = 1, Node* parent = nullptr)
 {
-	Path* foundPath = Path::findPathWithSource(paths, lookForSource);
+	Path* foundPath = Path::findPathWithSource(paths, lookForSource, pathsLength);
 	if (foundPath == nullptr) {
-		foundPath = Path::findPathWithDestination(paths, lookForSource);
+		foundPath = Path::findPathWithDestination(paths, lookForSource, pathsLength);
 		if(foundPath == nullptr)
 			return;
 		foundPath->swapSrcDest();
@@ -84,15 +97,16 @@ void buildTree(vpath_t &paths, vnode_t &tree, int lookForSource = 1, Node* paren
 
 int main()
 {
-	vnode_t tree;
-	vpath_t paths;
-
 	scanf("%d %d", &numPaths, &maxPaths);
+
+	Node** tree = new Node*[numPaths];
+	Path** paths = new Path*[numPaths];
+
 
 	int tmpSource, tmpDest, tmpFlowers;
 
-	int** distancesTable = new int*[numPaths + 1];
-	for (int i = 0; i <= numPaths; i++)
+	int** distancesTable = new int*[numPaths];
+	for (int i = 0; i < numPaths; i++)
 	{
 		distancesTable[i] = new int[maxPaths];
 		for (int j = 0; j < maxPaths; j++)
@@ -102,7 +116,8 @@ int main()
 	for (int i = 0; i < numPaths; i++) {
 		scanf("%d %d %d", &tmpSource, &tmpDest, &tmpFlowers);
 
-		paths.push_back(new Path(tmpSource, tmpDest, tmpFlowers));
+		paths[i] = new Path(tmpSource, tmpDest, tmpFlowers);
+		pathsLength++;
 	}
 
 	buildTree(paths, tree);
