@@ -1,71 +1,54 @@
 #include <vector>
+#include <string>
 
 #include "Tree.h"
 
 using namespace std;
 
-
-struct State
-{
-	int flowers;
-	int pathsToGo;
-
-
-	vnode_t parents;
-	vpath_t paths;
-
-	State() : flowers(0), pathsToGo(0) {}
-	State(int p) : flowers(0), pathsToGo(p) {}
-};
-
-State best = State();
 int numPaths = 0;
 int maxPaths = 0;
 
-vnode_t tree;
-vpath_t paths;
-
-int error = 0;
-Path errorPath = Path();
-Path errorParent = Path();
-Path errorParentLeft = Path();
-Path errorParentRight = Path();
-
-void compute(vnode_t paths, State state, Node* next)
+int compute(int** distances, Node* current, int depth)
 {
-	if(state.pathsToGo == 0)
-	{
-		if(state.flowers > best.flowers)
-			best = state;
-		return;
+	if (current == nullptr) 
+		return 0;
+
+	if (distances[current->distancesIndex][depth] != -1) 
+		return distances[current->distancesIndex][depth];
+
+	int max = 0;
+
+	if (depth == 1) {
+		if (current->left != nullptr && current->left->path->flowers > max)
+			max = current->left->path->flowers;
+
+		if (current->right != nullptr && current->right->path->flowers > max)
+			max = current->right->path->flowers;
+
+	} else {
+		int child = 0;
+
+		if (current->left != nullptr && (child = compute(distances, current->left, depth - 1)) && child > max)
+			max = child;
+
+		if (current->right != nullptr && (child = compute(distances, current->right, depth - 1) ) && child > max)
+			max = child;
+
+		if (current->left != nullptr && current->right != nullptr) {
+			for (int i = 0; i < depth - 1; i++) {
+				if ((child = compute(distances, current->left, i) + compute(distances, current->right, depth - i - 2)) && child > max)
+					max = child;
+			}
+		}
 	}
 
-	if(next == nullptr)
-	{
-		/*Node* mostFlowers = nullptr;
-		for (int i = state.parents.size() - 1; i > 0; i--)
-		{
-			if (state.parents.at(i-1)->right != nullptr && state.parents.at(i) != state.parents.at(i-1)->right)
-				compute(paths, state, state.parents.at(i-1)->right);
+	max += current->path->flowers;
+	distances[current->distancesIndex][depth] = max;
 
-			if (state.parents.at(i - 1)->left != nullptr && state.parents.at(i) != state.parents.at(i - 1)->left)
-				compute(paths, state, state.parents.at(i-1)->left);
-		}*/
-		return;
-	}
-
-	state.flowers += next->path->flowers;
-	state.pathsToGo--;
-	state.paths.push_back(next->path);
-	state.parents.push_back(next);
-
-	compute(paths, state, next->left);
-	compute(paths, state, next->right);
-	// TODO: Both
+	return max;
 }
 
-
-Node* putPathOnTree(Path* path, Node* parent)
+Node* putPathOnTree(vpath_t paths, vnode_t tree, Path* path, Node* parent)
 {
 	Node* n = new Node(path);
 
@@ -74,14 +57,6 @@ Node* putPathOnTree(Path* path, Node* parent)
 			parent->left = n;
 		else if (parent->right == nullptr)
 			parent->right = n;
-		else {
-			error = 2;
-			errorPath = *path;
-			errorParent = *parent->path;
-			errorParentLeft = *parent->left->path;
-			errorParentRight = *parent->right->path;
-			throw new exception();
-		}
 	}
 
 	tree.push_back(n);
@@ -91,20 +66,20 @@ Node* putPathOnTree(Path* path, Node* parent)
 	return n;
 }
 
-void buildTree(int lookForSource = 1, Node* parent = nullptr)
+void buildTree(vpath_t paths, vnode_t tree, int lookForSource = 1, Node* parent = nullptr)
 {
 	Path* foundPath = Path::findPathWithSource(paths, lookForSource);
 	if (foundPath == nullptr) {
 		return;
 	}
 
-	Node* n = putPathOnTree(foundPath, parent);
+	Node* n = putPathOnTree(paths, tree, foundPath, parent);
 
-	buildTree(foundPath->destination, n);
-	buildTree(foundPath->destination, n);
+	buildTree(paths, tree, foundPath->destination, n);
+	buildTree(paths, tree, foundPath->destination, n);
 }
 
-void fillTree()
+void fillTree(vpath_t paths, vnode_t tree)
 {
 	while (!paths.empty())
 	{
@@ -112,32 +87,87 @@ void fillTree()
 		path->swapSrcDest();
 		Node* parent = Node::findNodeWithDestination(tree, path->source);
 
-		Node* n = putPathOnTree(path, parent);
+		Node* n = putPathOnTree(paths, tree, path, parent);
 
-		buildTree(path->destination, n);
-		buildTree(path->destination, n);
+		buildTree(paths, tree, path->destination, n);
+		buildTree(paths, tree, path->destination, n);
 	}
 }
 
+struct ii
+{
+	string i;
+	ii* d;
+
+	ii() : i(""), d(nullptr) {}
+	ii(string s) : i(s), d(nullptr) {}
+};
+
+ii* in1 = new ii();
+ii* in2 = new ii();
+ii* in3 = new ii();
+ii* in4 = new ii();
+ii* in5 = new ii();
+ii* in6 = new ii();
+ii* in7 = new ii();
+ii* in8 = new ii();
+
 int main()
 {
+	vnode_t tree;
+	vpath_t paths;
+
 	scanf("%d %d", &numPaths, &maxPaths);
 
 	int tmpSource, tmpDest, tmpFlowers;
 
+	int** distancesTable = new int*[numPaths + 1];
+	for (int i = 0; i <= numPaths; i++)
+	{
+		distancesTable[i] = new int[maxPaths];
+		for (int j = 0; j < maxPaths; j++)
+			distancesTable[i][j] = -1;
+	}
+
+	ii* in = in1;
+
 	for (int i = 0; i < numPaths; i++) {
 		scanf("%d %d %d", &tmpSource, &tmpDest, &tmpFlowers);
+
+		in->d = new ii( to_string((long long)tmpSource) + " " + to_string((long long)tmpDest) + " " + to_string((long long)tmpFlowers));
+		if (i == 2)
+			in = in2;
+		else if (i == 5)
+			in = in3;
+		else if (i == 8)
+			in = in4;
+		else if (i == 11)
+			in = in5;
+		else if (i == 14)
+			in = in6;
+		else if (i == 17)
+			in = in7;
+		else if (i == 20)
+			in = in8;
+		else
+			in = in->d;
 
 		paths.push_back(new Path(tmpSource, tmpDest, tmpFlowers));
 	}
 
-	buildTree();
-	buildTree();
-	fillTree();
+	throw new exception();
 
-	compute(tree, State(maxPaths), tree.at(0));
+	buildTree(paths, tree);
+	buildTree(paths, tree);
+	fillTree(paths, tree);
 
-	printf("%d", best.flowers);
+	for (int i = 0; i < numPaths; i++) {
+		tree[i]->distancesIndex = i;
+		distancesTable[i][0] = tree[i]->path->flowers;
+	}
 
+	int result = compute(distancesTable, tree[0], maxPaths - 1);
+
+	printf("%d", result);
 	return 0;
 }

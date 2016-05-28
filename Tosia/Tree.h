@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 struct Path
 {
 	int source;
@@ -56,8 +54,10 @@ struct Node
 	Node* right;
 	Path* path;
 
-	Node() : left(nullptr), right(nullptr), path(nullptr) {}
-	Node(Path* p) : left(nullptr), right(nullptr), path(p) {}
+	int distancesIndex;
+
+	Node() : left(nullptr), right(nullptr), path(nullptr), distancesIndex(-1) {}
+	Node(Path* p) : left(nullptr), right(nullptr), path(p), distancesIndex(-1) {}
 
 	static Node* findNodeWithDestination(std::vector<Node*> tree, int dest)
 	{
