@@ -48,7 +48,7 @@ int compute(int** distances, Node* current, int depth)
 	return max;
 }
 
-Node* putPathOnTree(vpath_t paths, vnode_t tree, Path* path, Node* parent)
+Node* putPathOnTree(vpath_t &paths, vnode_t &tree, Path* path, Node* parent)
 {
 	Node* n = new Node(path);
 
@@ -61,37 +61,25 @@ Node* putPathOnTree(vpath_t paths, vnode_t tree, Path* path, Node* parent)
 
 	tree.push_back(n);
 
-	Path::erasePathWithSource(paths, path->source);
+	Path::erasePath(paths, path->source, path->destination);
 
 	return n;
 }
 
-void buildTree(vpath_t paths, vnode_t tree, int lookForSource = 1, Node* parent = nullptr)
+void buildTree(vpath_t &paths, vnode_t &tree, int lookForSource = 1, Node* parent = nullptr)
 {
 	Path* foundPath = Path::findPathWithSource(paths, lookForSource);
 	if (foundPath == nullptr) {
-		return;
+		foundPath = Path::findPathWithDestination(paths, lookForSource);
+		if(foundPath == nullptr)
+			return;
+		foundPath->swapSrcDest();
 	}
 
 	Node* n = putPathOnTree(paths, tree, foundPath, parent);
 
 	buildTree(paths, tree, foundPath->destination, n);
 	buildTree(paths, tree, foundPath->destination, n);
-}
-
-void fillTree(vpath_t paths, vnode_t tree)
-{
-	while (!paths.empty())
-	{
-		Path* path = paths.at(0);
-		path->swapSrcDest();
-		Node* parent = Node::findNodeWithDestination(tree, path->source);
-
-		Node* n = putPathOnTree(paths, tree, path, parent);
-
-		buildTree(paths, tree, path->destination, n);
-		buildTree(paths, tree, path->destination, n);
-	}
 }
 
 int main()
@@ -119,7 +107,6 @@ int main()
 
 	buildTree(paths, tree);
 	buildTree(paths, tree);
-	fillTree(paths, tree);
 
 	for (int i = 0; i < numPaths; i++) {
 		tree[i]->distancesIndex = i;

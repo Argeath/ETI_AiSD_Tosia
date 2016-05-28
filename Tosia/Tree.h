@@ -26,11 +26,11 @@ struct Path
 		return nullptr;
 	}
 
-	static void erasePathWithSource(std::vector<Path*> &v, int f)
+	static void erasePath(std::vector<Path*> &v, int source, int destination)
 	{
 		for (std::vector<Path*>::const_iterator it = v.begin(); it != v.end(); ++it)
 		{
-			if ((*it)->source == f) {
+			if ((*it)->source == source && (*it)->destination == destination) {
 				v.erase(it);
 				break;
 			}
