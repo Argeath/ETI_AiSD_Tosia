@@ -1,127 +1,148 @@
-#include <vector>
-#include <queue>
+#include <iostream>
+#include <set>
+#include "list.h"
 
 using namespace std;
 
-typedef int* path_t;
-typedef path_t* paths_t;
-
-int numCrosses = 0;
-int numPaths = 0;
-
-/*void computePaths(paths_t		 &paths, 
-				  vector<int>	 &minDistances,
-				  vector<int>	 &previous,
-				  short start)
+template<class A, class B>
+struct para
 {
-	minDistances.clear();
-	minDistances.resize(numCrosses, 2000000000);
-	minDistances[start] = 0;
+	A left;
+	B right;
 
-	previous.clear();
-	previous.resize(numCrosses, -1);
+	para() : left(NULL), right(NULL) {}
+	para(A l, B r) : left(l), right(r) {}
+};
 
-	vector<pair<int, short>> vertexQueue;
-	vertexQueue.push_back(make_pair(minDistances[start], start));
+typedef para<int, int> para_t;
 
-	previous[start] = 0;
+struct Wezel
+{
+	int id;
+	List<para<int, int>> sasiedzi;
 
-	while(!vertexQueue.empty())
+	Wezel(int i) : id(i), sasiedzi() {}
+
+	int getFlowersFromNeightbour(int i)
 	{
-		int distance = vertexQueue.begin()->first;
-		short source = vertexQueue.begin()->second;
-		vertexQueue.erase(vertexQueue.begin());
+		try {
+			para_t p = getPairFromNeightbour(i);
 
-		path_t &targetPaths = paths[source];
-		for (int i = 0; i < numCrosses; i++)
+			return p.right;
+		} catch(exception)
 		{
-			if (targetPaths[i] == -1)
-				continue;
-
-			int distanceTarget = targetPaths[i];
-			int distanceTo = distance + distanceTarget;
-
-			if (distanceTo < minDistances[i]) {
-				vertexQueue.erase(make_pair(minDistances[i], i));
-
-				minDistances[i] = distanceTo;
-
-				previous[i] = source;
-				vertexQueue.insert(make_pair(minDistances[i], i));
-			}
+			return -1;
 		}
 	}
-}*/
 
-const int INF = 1 << 30;
-
-class prioritize { public: bool operator ()(pair<int, int>&p1, pair<int, int>&p2) { return p1.second>p2.second; } };
-
-void Dijkstra(int source,
-	paths_t a,
-	vector<int>	 &dis,
-	vector<int>	 &previous)
-{
-	dis.clear();
-	dis.resize(numCrosses, 2000000000);
-	dis[source] = 0;
-
-	previous.clear();
-	previous.resize(numCrosses, -1);
-
-
-	bool* vis = new bool[numCrosses];
-	for (int i = 0; i < numCrosses; i++)
-		vis[i] = false;
-
-	for (int i = 0; i<numCrosses; i++)
-		dis[i] = INF;
-
-	priority_queue<pair<int, int>, vector<pair<int, int> >, prioritize> pq;
-	pq.push(make_pair(source, dis[source] = 0));
-	while (!pq.empty())
+	para_t & getPairFromNeightbour(int i)
 	{
-		pair<int, int> curr = pq.top();
-		pq.pop();
-		int cv = curr.first, cw = curr.second;
-		if (vis[cv])
-			continue;
-		vis[cv] = true;
-		for (int i = 0; i < numCrosses; i++) {
-			if (a[cv][i] == -1)
-				continue;
-
-			if (!vis[i] && a[cv][i] + cw < dis[i]) {
-				pq.push(make_pair(i, (dis[i] = a[cv][i] + cw)));
-				previous[i] = cv;
-			}
+		for (Node<para<int, int>>* it = sasiedzi.Begin(); it != sasiedzi.End(); it = it->next)
+		{
+			if (it->val.left == i)
+				return it->val;
 		}
+		throw exception("Not found");
+	}
+
+	para_t & operator [](int i)
+	{
+		return getPairFromNeightbour(i);
+	}
+};
+
+
+int numCrosses = 0;
+int numPaths = 0; 
+const int inf = 1 << 30;
+
+void computePaths(List<Wezel*> &paths,
+	List<int>	 &minDistances,
+	List<int>	 &previous)
+{
+	previous.reset(-1);
+	previous[0] = 0;
+
+	minDistances.reset(inf);
+	minDistances[0] = 0;
+
+	set<pair<int, int>> vertexQueue;
+	vertexQueue.insert(make_pair(minDistances[0], 0));
+
+	while (!vertexQueue.empty())
+	{
+		int distance = vertexQueue.begin()->first;
+		int source = vertexQueue.begin()->second;
+		vertexQueue.erase(vertexQueue.begin());
+
+		Wezel* targetNode = paths[source];
+		if (targetNode->sasiedzi.GetLength() > 0)
+			for (Node<para_t>* it = targetNode->sasiedzi.Begin(); it != targetNode->sasiedzi.End(); it = it->next)
+			{
+				int target = it->val.left;
+				int distanceTarget = it->val.right;
+				if (distanceTarget == -1)
+					continue;
+
+				int distanceTo = distance + distanceTarget;
+
+				if (distanceTo < minDistances[target]) {
+					vertexQueue.erase(make_pair(minDistances[target], target));
+
+					minDistances[target] = distanceTo;
+
+					previous[target] = source;
+					vertexQueue.insert(make_pair(minDistances[target], target));
+				}
+			}
 	}
 }
 
-void addPath(int source, int target, int flowers, paths_t &paths)
+void addPath(int source, int target, int flowers, List<Wezel*> &paths)
 {
-	path_t &sourcePaths = paths[source];
-	path_t &targetPaths = paths[target];
+	Wezel* sourceNode = paths[source];
+	Wezel* targetNode = paths[target];
 
-	sourcePaths[target] = flowers;
-	targetPaths[source] = flowers;
+	if (sourceNode == nullptr) {
+		sourceNode = new Wezel(source);
+		paths[source] = sourceNode;
+	}
+
+	if (targetNode == nullptr) {
+		targetNode = new Wezel(target);
+		paths[target] = targetNode;
+	}
+
+	para_t p(target, flowers);
+	para_t p2(source, flowers);
+
+	sourceNode->sasiedzi.Push(p);
+	targetNode->sasiedzi.Push(p2);
+}
+
+void printPaths(List<Wezel*> paths)
+{
+	for (Node<Wezel*>* it = paths.Begin(); it != paths.End(); it = it->next)
+	{
+		if (it->val == nullptr) continue;
+
+		printf("%d:\n", it->val->id);
+		if (it->val->sasiedzi.GetLength() > 0)
+			for (Node<para_t>* its = it->val->sasiedzi.Begin(); its != it->val->sasiedzi.End(); its = its->next)
+				printf("   %d %d\n", its->val.left, its->val.right);
+		printf("\n");
+	}
 }
 
 int main()
 {
 	scanf("%d %d", &numCrosses, &numPaths);
 
-	vector<int> minDistances;
-	vector<int> previous;
+	List<int> minDistances(numCrosses, inf);
+	List<int> previous(numCrosses, -1);
 
-	paths_t paths;
-	paths = new int*[numCrosses];
-	for (int i = 0; i < numCrosses; i++) {
-		paths[i] = new int[numCrosses];
-		for (int j = 0; j < numCrosses; j++)
-			paths[i][j] = -1;
-	}
+	List<Wezel*> paths(numCrosses, nullptr);
+	
 
 	int tmpSource, tmpTarget, tmpDistance;
 	for (int i = 0; i < numPaths; i++)
@@ -131,10 +152,7 @@ int main()
 		addPath(tmpSource, tmpTarget, tmpDistance, paths);
 	}
 
-
-	//compute_paths(paths, minDistances, previous, 0);
-
-	Dijkstra(0, paths, minDistances, previous);
+	computePaths(paths, minDistances, previous);
 	int shortest = minDistances[numCrosses - 1];
 
 	int* path = new int[numCrosses];
@@ -144,30 +162,29 @@ int main()
 
 	path[n++] = 0;
 
-	vector<int> kpaths;
+	List<int> kpaths;
+
 	int tmpPath1Index = -1, tmpPath2Index = -1;
 	int tmpPathDistance = -1;
 
 	int secondShortest = 99999999;
 
-	// 0 1 2 3 4
-	// 6 5 2 1 0
 	for (int i = 0; i < n - 1; i++)
 	{
 		if(tmpPath1Index != -1 && tmpPath2Index != -1)
 		{
-			paths[tmpPath1Index][tmpPath2Index] = tmpPathDistance;
-			paths[tmpPath2Index][tmpPath1Index] = tmpPathDistance;
+			(*paths[tmpPath1Index])[tmpPath2Index].right = tmpPathDistance;
+			(*paths[tmpPath2Index])[tmpPath1Index].right = tmpPathDistance;
 		}
 
 		tmpPath1Index = path[i];
 		tmpPath2Index = path[i+1];
 
-		tmpPathDistance = paths[tmpPath1Index][tmpPath2Index];
-		paths[tmpPath1Index][tmpPath2Index] = -1;
-		paths[tmpPath2Index][tmpPath1Index] = -1;
+		tmpPathDistance = (*paths[tmpPath1Index])[tmpPath2Index].right;
+		(*paths[tmpPath1Index])[tmpPath2Index].right = -1;
+		(*paths[tmpPath2Index])[tmpPath1Index].right = -1;
 
-		Dijkstra(0, paths, minDistances, previous);
+		computePaths(paths, minDistances, previous);
 
 		int dist = minDistances[numCrosses - 1];
 		if (dist != -1 && dist < secondShortest)
