@@ -6,11 +6,14 @@
 template<class T>
 class List : public DataCollection<T>
 {
+	Node<T>** table;
+	bool tableInitated;
 public:
-	List() : DataCollection() {}
+	List() : DataCollection(), tableInitated(false) {}
 
-	List(int amount, T defaultValue) : DataCollection()
+	List(int amount, T defaultValue) : DataCollection(), tableInitated(true)
 	{
+		table = new Node<T>*[amount];
 		for (int i = 0; i < amount; i++)
 			Push(defaultValue);
 	}
@@ -38,6 +41,9 @@ public:
 
 		if (first == nullptr)
 			first = node;
+
+		if (tableInitated)
+			table[length] = node;
 
 		last = node;
 		length++;
@@ -85,6 +91,16 @@ public:
 		return tmp->val;
 	}
 
+	bool Has(T obj)
+	{
+		for (Node<T>* it = Begin(); it != End(); it = it->next)
+		{
+			if (it->val == obj)
+				return true;
+		}
+		return false;
+	}
+
 	Node<T>* Begin()
 	{
 		return first;
@@ -99,12 +115,16 @@ public:
 	{
 		if (i >= length)
 			throw std::exception("Out of range");
+		if (tableInitated)
+			return table[i]->val;
 		return *Get(i);
 	}
 	T & operator [](int i)
 	{
 		if (i >= length)
 			throw std::exception("Out of range");
+		if (tableInitated)
+			return table[i]->val;
 		return Get(i);
 	}
 };

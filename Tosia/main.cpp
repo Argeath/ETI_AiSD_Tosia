@@ -58,16 +58,17 @@ const int inf = 1 << 30;
 
 void computePaths(List<Wezel*> &paths,
 	List<int>	 &minDistances,
-	List<int>	 &previous)
+	List<int>	 &previous,
+	int			  start)
 {
 	previous.reset(-1);
-	previous[0] = 0;
+	previous[start] = start;
 
 	minDistances.reset(inf);
-	minDistances[0] = 0;
+	minDistances[start] = 0;
 
 	set<pair<int, int>> vertexQueue;
-	vertexQueue.insert(make_pair(minDistances[0], 0));
+	vertexQueue.insert(make_pair(minDistances[start], start));
 
 	while (!vertexQueue.empty())
 	{
@@ -140,6 +141,8 @@ int main()
 
 	List<int> minDistances(numCrosses, inf);
 	List<int> previous(numCrosses, -1);
+	List<int> minDistances2(numCrosses, inf);
+	List<int> previous2(numCrosses, -1);
 
 	List<Wezel*> paths(numCrosses, nullptr);
 	
@@ -152,48 +155,30 @@ int main()
 		addPath(tmpSource, tmpTarget, tmpDistance, paths);
 	}
 
-	computePaths(paths, minDistances, previous);
+	computePaths(paths, minDistances, previous, 0);
+	computePaths(paths, minDistances2, previous2, numCrosses - 1);
+
 	int shortest = minDistances[numCrosses - 1];
 
-	int* path = new int[numCrosses];
+	List<int> path;
 	int n = 0;
 	for (int vertex = numCrosses - 1; vertex != 0; vertex = previous[vertex])
-		path[n++] = vertex;
+		path.Push(vertex);
 
-	path[n++] = 0;
+	path.Push(0);
 
-	List<int> kpaths;
+	int secondShortest = inf;
 
-	int tmpPath1Index = -1, tmpPath2Index = -1;
-	int tmpPathDistance = -1;
-
-	int secondShortest = 99999999;
-
-	for (int i = 0; i < n - 1; i++)
+	for (int i = 1; i < numCrosses - 1; i++)
 	{
-		if(tmpPath1Index != -1 && tmpPath2Index != -1)
-		{
-			(*paths[tmpPath1Index])[tmpPath2Index].right = tmpPathDistance;
-			(*paths[tmpPath2Index])[tmpPath1Index].right = tmpPathDistance;
-		}
+		if (path.Has(i)) continue;
 
-		tmpPath1Index = path[i];
-		tmpPath2Index = path[i+1];
-
-		tmpPathDistance = (*paths[tmpPath1Index])[tmpPath2Index].right;
-		(*paths[tmpPath1Index])[tmpPath2Index].right = -1;
-		(*paths[tmpPath2Index])[tmpPath1Index].right = -1;
-
-		computePaths(paths, minDistances, previous);
-
-		int dist = minDistances[numCrosses - 1];
-		if (dist != -1 && dist < secondShortest)
-			secondShortest = dist;
-		if (shortest == secondShortest)
-			break;
+		int length = minDistances[i] + minDistances2[i];
+		if (length < secondShortest)
+			secondShortest = length;
 	}
 
-	if (shortest < 9999999 && secondShortest < 9999999)
+	if (shortest != inf && secondShortest != inf)
 		printf("%d %d", shortest, secondShortest);
 	else
 		printf("#");
